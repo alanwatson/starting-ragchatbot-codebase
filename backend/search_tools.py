@@ -89,28 +89,49 @@ class CourseSearchTool(Tool):
         """Format search results with course and lesson context"""
         formatted = []
         sources = []  # Track sources for the UI
-        
+        seen_sources = set()  # Prevent duplicate sources
+
         for doc, meta in zip(results.documents, results.metadata):
             course_title = meta.get('course_title', 'unknown')
             lesson_num = meta.get('lesson_number')
-            
-            # Build context header
+
+            # Build context header for AI (unchanged)
             header = f"[{course_title}"
             if lesson_num is not None:
                 header += f" - Lesson {lesson_num}"
             header += "]"
-            
-            # Track source for the UI
-            source = course_title
-            if lesson_num is not None:
-                source += f" - Lesson {lesson_num}"
-            sources.append(source)
-            
             formatted.append(f"{header}\n{doc}")
-        
-        # Store sources for retrieval
+
+            # Create structured source citation
+            if lesson_num is not None:
+                # Create unique key to prevent duplicates
+                source_key = f"{course_title}_{lesson_num}"
+                if source_key not in seen_sources:
+                    seen_sources.add(source_key)
+
+                    # Fetch lesson metadata (title + link)
+                    lesson_meta = self.store.get_lesson_metadata(course_title, lesson_num)
+
+                    if lesson_meta:
+                        # Successfully retrieved metadata
+                        sources.append({
+                            'course_title': course_title,
+                            'lesson_number': lesson_num,
+                            'lesson_title': lesson_meta['lesson_title'],
+                            'lesson_link': lesson_meta['lesson_link']  # Can be None
+                        })
+                    else:
+                        # Fallback: metadata retrieval failed
+                        sources.append({
+                            'course_title': course_title,
+                            'lesson_number': lesson_num,
+                            'lesson_title': f'Lesson {lesson_num}',
+                            'lesson_link': None
+                        })
+
+        # Store structured sources for retrieval
         self.last_sources = sources
-        
+
         return "\n\n".join(formatted)
 
 class ToolManager:

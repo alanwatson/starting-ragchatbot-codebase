@@ -122,10 +122,27 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Format each source as clickable link or plain text badge
+        const formattedSources = sources.map(source => {
+            const displayText = `${source.course_title} - ${source.lesson_title}`;
+
+            // If lesson_link exists, create clickable link
+            if (source.lesson_link) {
+                return `<a href="${escapeHtml(source.lesson_link)}"
+                           class="source-link"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Open lesson video in new tab">${escapeHtml(displayText)}</a>`;
+            } else {
+                // No link available - display as plain text badge
+                return `<span class="source-text">${escapeHtml(displayText)}</span>`;
+            }
+        }).join('');
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${formattedSources}</div>
             </details>
         `;
     }

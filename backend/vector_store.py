@@ -264,4 +264,35 @@ class VectorStore:
             return None
         except Exception as e:
             print(f"Error getting lesson link: {e}")
-    
+            return None
+
+    def get_lesson_metadata(self, course_title: str, lesson_number: int) -> Optional[Dict[str, Any]]:
+        """Get lesson metadata (title and link) for a given course and lesson number
+
+        Args:
+            course_title: Exact course title (must match ChromaDB ID)
+            lesson_number: Lesson number to retrieve
+
+        Returns:
+            Dict with 'lesson_title' and 'lesson_link' keys, or None if not found
+        """
+        import json
+        try:
+            # Get course by ID (title is the ID)
+            results = self.course_catalog.get(ids=[course_title])
+            if results and 'metadatas' in results and results['metadatas']:
+                metadata = results['metadatas'][0]
+                lessons_json = metadata.get('lessons_json')
+                if lessons_json:
+                    lessons = json.loads(lessons_json)
+                    # Find the lesson with matching number
+                    for lesson in lessons:
+                        if lesson.get('lesson_number') == lesson_number:
+                            return {
+                                'lesson_title': lesson.get('lesson_title', f'Lesson {lesson_number}'),
+                                'lesson_link': lesson.get('lesson_link')
+                            }
+            return None
+        except Exception as e:
+            print(f"Error getting lesson metadata: {e}")
+            return None
